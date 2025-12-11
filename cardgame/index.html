@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8">
+		<link rel="stylesheet" href="../css/style.css">
+		<title>blogthing: Card Game</title>
+        <script id="MathJax-script" async
+            src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js">
+  </script>
+	</head>
+
+	<body>
+		<header>
+			<h1 class="hN"> Card Game Devlog [01] </h1>
+            <hr>
+		</header>
+		<main>
+			<section>
+				<h3>
+					Introduction
+				</h3>
+				<p>
+                    For a while now I have thought about creating a card game. Only recently
+                    (recently, as in the past year), however, did I become satisfied with (some of)
+                    the solutions I've come up with to the requirements I put on myself. As I have
+                    also made some progress on the implementation side, but not enough to have a
+                    demo, I decided to write this development blog. Its purpose is to record the
+                    evolution of my ideas and to serve as a sign of existence of the work I have put
+                    in up until now.
+				</p>
+
+				<h3>
+					About card games
+				</h3>
+				<p>
+                    There are different things that may come to mind when one reads the words "card
+                    game". One of them would be card games which utilise the classic 52 card deck or
+                    a subset of it - games, such as Poker, Belot and others which have existed for
+                    quite some time now<sup><a id="r1b" href="#r1">1</a></sup>. Even though the
+                    space for strategy in those games is not limited (at all) and creating an agent
+                    that can play these games well would be a good challenge, modelling them in
+                    software (probably) would not have taken me this much time. Instead, the card
+                    games I am primarily inspired by are Yu&#8209;Gi&#8209;Oh! (YGO), Magic: The
+                    Gathering (MTG), Hearthstone, Duel Masters, ...
+				</p>
+
+				<h3>
+					State of the game
+				</h3>
+				<p>
+                    Modelling the state of games like the aforementioned Trading Card Games (TCGs)
+                    is not a straightforward task. A few of the challenges I have/had to solve are,
+                    but not limited to:
+				</p>
+
+				<ul>
+					<li>
+                        Not having a concrete ruleset. Since I do not know the rules of the game I
+                        am creating yet, I cannot say with certainty that my card entities will have
+                        such and such fields which can have such and such values. One can validly
+                        argue, however, that I should first have a game idea in mind and then start
+                        prototyping and playtesting systems. A counterargument is that this way of
+                        storing state information does not help with the next point.
+					</li>
+
+					<li>
+                        Extensibility. I want to easily add new cards and features potentially
+                        without rebuilding the game project. I want others to be able to do the same
+                        without having to modify the executable or the base game files. Using a
+                        structure with a field for an attack and defence stat is not going to help.
+					</li>
+
+					<li>
+                        Performance and size efficiency<sup><a id="r2b" href="#r2">2</a></sup>. I
+                        want to quickly modify the state and answer queries about it. For example,
+                        in a linear or better amount of time one should be able to find all card
+                        entities with a given property, all cards whose property
+                        <i>has a certain value</i>
+                        and the value of any given property a card has. In addition, update
+                        operations should also be fast.
+					</li>
+				</ul>
+
+				<p>
+                    The solution I found for the first two challenges was to store the cards as bags
+                    of property-value number pairs. This way I can leave the semantic interpretation
+                    of the numbers up to the graphical part of the game which will need to be
+                    specialised for specific rules either way. Both the property and value number
+                    are 64 bit signed integers. This way, a property's value can be another property
+                    or in fact several other things. Depending on the bit signature a property can
+                    be interpreted in several ways. For example, the 4 most significant bits are
+                    reserved for the type of the property. An instance of a number property could be
+                    the ATK stat in YGO while the Type of a monster is an enumeration of different
+                    symbols (in the mathematical sense) e.g. Dragon, Beast, Plant, etc.
+				</p>
+
+				<p>
+                    For a long time I was debating how to approach the third challenge. My initial
+                    ideas revolved around bitvectors which could hold whether a card had a given
+                    property with additional sparse arrays to hold the value of the property if it
+                    had one. This way I could easily perform set operations such as union or
+                    intersect on the results of query. This approach, however, was not extensible
+                    and the size of the matrix formed by the bitvector rows for each card would grow
+                    unnecessarily with every new property I wanted to store. The number of
+                    properties for a given card could also be unbalanced. If we consider a creature
+                    on the battlefield in MTG and a creature in the Library, there are considerably
+                    more things that can happen to the creature in play (which would need to be
+                    stored somehow), than to the one safely tucked away in the Library.
+				</p>
+
+				<p>
+                    Another problem arises when one property can have multiple values at the same
+                    time (such as the types of this
+					<a target="_blank" href="https://scryfall.com/card/rna/183/hydroid-krasis">creature</a>).
+                    One approach is to treat the value of the property as a bitvector with flags for
+                    each variant of that property. This, however, is not extensible and will become
+                    a problem when or if the number of variants the property has, becomes greater
+                    than the size of the value integer. The approach I went with is to have the
+                    variants of the property to also be ("tag") properties that the card can have.
+                    My implementation is heavily inspired by the
+					<a target="_blank" href="https://github.com/SanderMertens/flecs">flecs</a>
+                    project whose creator,
+                    <a target="_blank" href="https://ajmmertens.medium.com/">Sander Mertens</a>, has
+                    a few blogs on how the Entity Component System (ECS) works and which were a
+                    helpful guide when I was writing code.
+				</p>
+
+				<p>
+					Here is "briefly" how the whole thing works.
+				</p>
+				<ul>
+					<li>
+                        Unlike <b>flecs</b>, I do not need to store complex components and in card
+                        games things are inherently discrete so the integer pair property-value
+                        works well. The collection of structures needed to store the data, perform
+                        the queries and update the state I will refer to as the World.
+					</li>
+
+					<li>
+                        One of the main concepts of this ECS is the Archetype. An Archetype is
+                        responsible for storing the values for all cards which have the same
+                        properties, by which the Archetype is distinguished. This set of properties
+                        is called the Type of the Archetype. For each property the Archetype stores
+                        a column with its values for cache related speed reasons<sup><a id="r3b"
+                            href="#r3">3</a></sup>.
+					</li>
+
+                    <li>
+                        The properties in the Type are sorted. This enables two things. First, we
+                        can use binary search to quickly find the index of any property in the
+                        Archetype and also the index in which a new property could be inserted. This
+                        will be useful for the next bullet point. Second, we can again use binary
+                        search to find a lower and upper index bound for properties which share the
+                        same <i>k</i> most significant bits. This is particularly useful when we
+                        want to enumerate the variants of a property a card has. Consider the
+                        following toy example. The 3 most significant bits of the number represent
+                        which property the variant belongs to, the lower 4 - the identify of the
+                        variant. Now, let the contents of the Type be:
+                        <center style="padding: 0.5em">
+                            <span>
+                                {000'0101, 000'0001, <u>010'0010, 010'0011, 010'0100</u> 011'1000}
+                            </span>
+                        </center>
+                        If we want to find the variants of the property corresponding to the 010
+                        most significant bit pattern, we search for 010'0000 and 010'1111 to find
+                        the underlined range of properties.
+                    </li>
+
+					<li>
+                        Adding and removing a property from a card happens by moving the card from
+                        one Archetype to another. Finding the new Archetype is done using a graph.
+                        The edges in the graph show the relationships between two Archetypes. In the
+                        full graph if two Archetypes have all properties in common except for one,
+                        then there exists an edge labellaed with that property between the two
+                        Archetypes. In reality this graph is built up dynamically throughout the
+                        life of the World when needed. Removing a card from an Archetype is done by
+                        performing a swap remove - taking the last element and putting it in the
+                        hole opened up by removing the current one. This is done for each of the
+                        columns in the Archetype. The order of the cards in the Archetype does not
+                        matter and so we can use this \(O(1)\) operation without worry.
+					</li>
+
+                    <li>
+                        To find whether an Archetype contains a property, another structure is
+                        maintained - a map with a given property as a key and "inner" maps of
+                        Archetypes as a value (for people familiar with templates/generics in some
+                        programming languages:
+                        <code class="inline">Map&lt;Property, Map&lt;ArchetypeIdx, int&gt;&gt;</code>).
+                        The inner map relates an Archetype to the index of the column which
+                        corresponds to the property the inner map belongs to. And so, the
+                        aforementioned check is performed by testing whether the inner map contains
+                        the Archetype. (More specifically we test whether the Archetype <i>index</i>
+                        is contained in the map).
+                    </li>
+
+                    <li>
+                        Finally, to perform queries about the properties of individual cards we
+                        store an array of recors, corresponding to each card. A record consists of
+                        the index of the Archetype the card belongs to and the index of the row the
+                        card's property values are stored. When updating an archetype and if as a
+                        result of the swap remove, we've moved the last row, we must update the row
+                        index of the corresponding card. To keep this a constant time operation, the
+                        Archetype stores an array of card indices in the order in which their rows
+                        appear in the property-value matrix.
+                    </li>
+				</ul>
+
+                <p>
+                    Given this description, I can answer the queries I posed in the third challenge.
+                    One thing that this structure cannot answer as efficiently as I'd like it to is
+                    queries related to multiple properties. Currently, such queries work in
+                    \(O(kn)\) time where <i>k</i> is the number of properties which participate in
+                    the query and <i>n</i> is the number of cards in the World.
+                </p>
+
+				<p>
+                    A way that I can improve the current implementation is not to store values for
+                    tag properties. For now, I am hesitant to do this rewrite as I might find a use
+                    case for storing values in tag properties. In addition, my current
+                    implementation does not support creating or deleting cards, however, this would
+                    be useful for card effects which create Tokens (for example in
+					<a target="_blank" href="https://yugipedia.com/wiki/Scapegoat">YGO</a>
+					and
+					<a target="_blank" href="https://scryfall.com/card/m13/173/fungal-sprouting">MTG</a>).
+				</p>
+
+                <p>
+                    A flaw in this structure is the potential for the number of Archetypes to grow
+                    very rapidly as the number of states a card can be in is large. There is also
+                    the possibility that the number of Archetypes vastly outgrows the number of
+                    cards in the World. However, I do not have any empirical data in order to
+                    confirm or deny this.
+                </p>
+
+                <p>
+                    Now, the World covers the moment to moment state of the game, however, it does
+                    not store changes to the game state that have happened in the past. In addition,
+                    it does not store "global" state that is not tied to any particular card - the
+                    turn number, whose turn it is and others. We may want to record what has
+                    happened previously in order to replay of the game. In addition, many card
+                    effects or abilities refer to things that have happened previously in the game.
+                    A more practical approach to solve this, however, could be to iterate all cards
+                    when an event has happened and for any conditional effects put somewhere a
+                    marker e.g. a tag property. Later, when the game is in a so called open game
+                    state where the turn player can choose what to do freely, the abilities of the
+                    cards can refer to the markers in order to check whether they can legally be
+                    invoked or in the case of triggers, whether they should activate.
+                </p>
+
+                <p>
+                    I have chosen not to modify the original World structure, but to create a
+                    wrapper which augments it with the needed data in order to perform the tasks I
+                    described. This wrapper, called a Chronicle, stores every change that has
+                    happened to any given card. In addition it has a simple integer to integer
+                    integer which can be used to store the aforementioned global state. Perhaps a
+                    wise way to place event markers would be to store them in the global state
+                    instead of on a specific card in order to reduce the number of Archetypes
+                    present in the World. The meaning of the marker can be encoded in the bit
+                    signature of the key integer exactly in the way properties are encoded.
+                </p>
+                
+                <p>
+                    This concludes the majority of the work and my thought process on this specific
+                    topic so far. There are still improvements to be made but recently I have been
+                    focused on and have made more significant progress on the following topic.
+                </p>
+
+				<h3>
+					Storing Logic
+				</h3>
+				<p>
+                    Another non-trivial task is the encoding of the rules of the game and the
+                    effects or abilities of the cards, unless one believes that hard coding
+                    everything is a great way to spend their time. One challenging aspect of this
+                    task, aside from its inherent difficulty, is being able to pause execution for
+                    an agent to pick otions the effects provide. This 
+					<a target="_blank" href="https://youtu.be/s1ZQnS_tOg0">video</a>
+                    was one of the main sources of inspiration when I was thinking about a solution.
+				</p>
+
+                <p>
+                    The two main ideas I had were using a state machine and creating a simple
+                    programming language. My (currently) final choice was not made in a
+                    straightforward fashion and so, to spare you most of the details, I will first
+                    discuss the ideas behind the state machine and then the programming language.
+                </p>
+
+                <p>
+                    Utilising a state machine helps with the problem of pausing execution in the
+                    middle of an effect. In fact, the idea of a state behaviour tree, with branch,
+                    loop and leaf nodes lends itself well to the structure of effects. There were
+                    several points of friction, however, which deterred me from implementing this
+                    fully. Firstly, I wanted the textual representation of what an effect does
+                    (whether in the language I was writing the state machine in or in a serialized
+                    form) to be very clear at a first glance. Wiring up pre-written states did not
+                    seem like it would make that light or enjoyable if I at least did not create an
+                    additional tool to help with visualisation. The nature of states also has to be
+                    composable in order for it not to be equivalent to hard coding everything. In
+                    order to be composable, however, there had to be a separate, temporary shared
+                    state through which different states could pipe results from queries and
+                    calculations. Standardising this did not appear fun as well. In the end, perhaps
+                    I did not explore this idea to its fullest potential and so I may give it
+                    another try.
+                </p>
+
+                <p>
+                    During my continuous learning process about different areas of computer science
+                    I had acquired the knowledge that some programming languages support the idea of
+                    coroutines. My encounters with them were in C# with Unity (the
+                    <a href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/yield">
+                        <code class="inline">yield</code></a>
+                    contextual keyword and the <code class="inline">IEnumerator</code> interface)
+                    and later in Lua. Coroutines fulfilled the requirement that the textual
+                    representation of the logic should be in one place for better understanding. In
+                    addition, they solved the temporary shared state problem that my state machine
+                    solution had. Namely, this concept was what I was trying to emulate when I was
+                    thinking about the implementation of the effect encoding. Initially, I wanted to
+                    use an already existing scripting language. My reasoning was that such a
+                    language would have been designed by people with way more experience than me and
+                    that I would not be able to do any better. At some point I was experimenting
+                    with integrating Lua and Rust (my current hacking language of
+                    choice<sup><a id="r4b" href="#r4">4</a></sup>). One thing I wanted to be very
+                    careful about was sandboxing the scripting language I used. I did not want my
+                    software to become an example for a vulnerable system (even though it still
+                    might be) and it would be a nice exercise. After a bit of frustration I gave up,
+                    however, at this point in time I had already taught myself about a bit about
+                    creating programming languages by reading the fantastic
+                    <a href="https://craftinginterpreters.com/">Crafting Interpreters</a>
+                    by Robert Nystrom. That is why I was eager to give creating a simple programming
+                    language a try.
+                </p>
+
+                <p>
+                    And so, here is the current way I am encoding logic and storing data related to
+                    it.
+                </p>
+				<ul>
+                    <li>
+                        The structure which holds the information for everything from defined
+                        symbols (properties), to effects, helper procedures, cards and so on, is
+                        called a Library. The Library contains a collection of Packs. The purpose of
+                        the Packs is to separate different sets of cards and their features and
+                        mechanics into separate modules. Packs are also the main way I (and
+                        potentially other enthusiasts) will create additional content for the card
+                        game. In a file system, the different modules (files) of a Pack live in
+                        separate directories named after the Pack. Packs can depend on other Packs.
+                        Currently, the compiler looks for these dependencies in the same folder. I
+                        have intentionally imposed this limitation to spare myself sanitisation.
+                        Similarly, I have limited the names of the Packs and modules to be valid
+                        identifiers in the programming language (namely latin alphabet characters,
+                        underscore, and numbers). Among the structures of the Pack, I use a
+                        third-party string interner library.
+                    </li>
+
+                    <li>
+                        The current file structure of a Pack directory is as follows. Firstly, there
+                        must be a file <i>pack.cg</i> containing the Pack definition (<i>cg</i>
+                        stands for <i>card game</i>). In it are listed the dependencies of the Pack
+                        and the modules the pack contains. The modules are compiled in the order
+                        they are defined. For simplicity's sake (and because I have not yet thought
+                        too much about this or whether it's worth it) I do only one compilation pass
+                        for which everything must be declared in advace (like in C). Currently there
+                        is nothing else in the pack definition. The files for the modules are in the
+                        same directory as the Pack definition. In the future, there will be (at
+                        least) two additional subdirectories - one for the images of the cards and
+                        the other for licenses of the images and/or the code.
+                    </li>
+
+                    <li>
+                        Before the contents of the modules are compiled, the compiler checks whether
+                        the current Library contains the compiled dependencies of the pack. If it
+                        does, not it tries to find and compile any missing dependencies. The
+                        directory it searches the dependencies for is the same as the one the
+                        currently compiled pack lives in; I believe this is a good choice (either
+                        for now or also for the future as well).
+                    </li>
+
+                    <li>
+                        After the compilation of the dependencies is done, it is time for the
+                        modules. As I didn't mention this before, I will mention it here. For the
+                        compilation process I use an out of the box third-party lexer. Besides that,
+                        I have written a simple recursive descent parser. I do not construct an
+                        Abstract Syntax Tree. Instead I directly emit bytecode or store the data in
+                        the data structures of the Pack. For now, I believe that there is no need
+                        for anything more complex.
+                    </li>
+
+                    <li>
+                        The modules consist of a sequence of definitions. Currently I am able to
+                        compile property definitions and procedure definitions. Other definitions I
+                        have yet to write the compilation for are card definitions, effect
+                        definitions and group definitions. Perhaps card definitions are
+                        straightforward to understand, so I will elaborate on the rest.
+                    </li>
+
+                    <li>
+                        A property definition declares that given symbols exist and that they can be
+                        referred to in procedures. Here the different types of properties can be
+                        marked whether they are a variants of another property for example, and
+                        given a corresponding number with a valid bit signature. One benefit of
+                        writing a compiler is that I will get an error message if I refer to a
+                        property that does not exist, whereas if I used serialization of states I
+                        would have to do a separate validation. Now, properties are stored
+                        individually in a Pack, however, after the entire Pack is compiled
+                        successfully, there is a step to check whether there is a collision of
+                        property numbers from different Packs in the current Library. If there is,
+                        the Pack is not included in the Library and an error is reported. This
+                        collision can also happen during the compilation of a single Pack between
+                        other definitions as well. Currently I report these collisions, however, I
+                        am unsure what would be a correct way to handle them when they do happen.
+                    </li>
+
+                    <li>
+                        Procedures include the actual logic that will be exectued by a bytecode
+                        Virtual Machine (VM). The current shape of a procedure is the following. A
+                        procedure can have parameters, which can then be used throughout the code.
+                        The code inside is comprised of assembly-like operations for performing
+                        arithmetic and modifying the game state. In addition, these operations can
+                        refer to registers, buffers, cards and properties (which could be defined in
+                        a dependency of this Pack). A register is a slot for a single number and a
+                        buffer is a simple dynamic array. These serve as a shared context between
+                        procedure calls. Apart from the assembly like operations, I have control flow
+                        operations such as an if-else and loop operation, break and continue which
+                        work with labels which in turn can be placed on scopes (which are there only
+                        in syntax) or loops. I have yet to implement the compilation of operations
+                        which call other card game language and native procedures, operations for
+                        manipulating the contents of the buffers (apart from changing the values in
+                        already existing slots) and operations for receiving input from agents
+                        (human players and potentially artificial players). I have a pretty good
+                        idea on how to implement the former two, however, I need more time
+                        thinking about the latter. Receiving input from agents will simply pause the
+                        execution in the VM in a similar way interrupts work in real CPUs.
+                    </li>
+
+                    <li>
+                        Effect definitions will consist of a single or multiple procedures which
+                        describe the activation requirements and the actual logic of the effect. In
+                        addition, it will contain any relevant text such as its description and any
+                        questions about options the effect provides. An example of a question would
+                        be when a simulator such as Master Duel or MTG Arena asks whether you'd like
+                        to activate the optional effect of a card.
+                    </li>
+
+                    <li>
+                        A Group is a concept I recently came up with. To elaborate - property
+                        variants can be declared only in a single place. Further variants cannot be
+                        added outside the current definition nor outside the current Pack since the
+                        order of the compilation of Packs would matter. It would be nice, however,
+                        when creating a new unit (think monsters in YGO or creatures in MTG) to add
+                        a new unit type without changing the original Pack definition. That's where
+                        Groups come in. They will be defined on the Library level and any Pack can
+                        declare that certain properties belong to certain groups. A group is a set
+                        of properties and so it would not be a problem if two different Packs put
+                        the same property in the same Group twice. Groups will be useful for times
+                        when a new variant type should be added to an already existing property or
+                        when already existing properties should be referable under the same new
+                        keyword. Examples include when
+                        <a href="https://yugipedia.com/wiki/Cyberse">Cyberse</a> and
+                        <a href="https://yugipedia.com/wiki/Illusion">Illusion</a> monsters were
+                        introduced in YGO and when MTG introduced the
+                        <a href="https://mtg.wiki/page/Outlaw">Outlaw</a> mechanic. One flaw that
+                        Groups introduce is that there will be two different ways to... well, group
+                        properties and their variants, which could be confusing.
+                    </li>
+                </ul>
+
+                <p>
+                    One improvement to the compiler that I should make in the near future is error
+                    recovery in order to report multiple errors instead of just one. In addition,
+                    when a sizeable number of the features are done, I will provide a binary to the
+                    interpreter and an example of card game code. For enthusiasts I will also
+                    provide a tree-sitter parser for code highlights.
+                </p>
+
+                <p>
+                    This concludes all I wanted to share for now. I am certain that I have forgotten
+                    something so future edits are possible.
+                </p>
+
+                <p>
+                    See you in the next one!<br/>- Martin
+                </p>
+
+                <h3>Addendum</h3>
+                <p>
+                    <i>But Martin, where's the code?</i> Safely stored on my SSD. I do not claim
+                    anything extraordinary about the quality of my work, however, I'd like to keep
+                    it away from the prying crawlers of AI companies. If you have any suggestions,
+                    or would like to discuss ideas, feel free to create a GitHub issue on this
+                    repository<sup><a id="r5b" href="#r5">5</a></sup>.
+                    Corrections for typos, grammatical and other mistakes are also welcome.
+                </p>
+			</section>
+
+            <section class="footnotes">
+                <hr>
+				<p>
+                    <sup><a id="r1" href="#r1b">1</a></sup>
+					<i>
+						If you'd like to try something new check out
+						<a target="_blank" href="https://www.regicidegame.com/">Regicide</a>.
+					</i>
+				</p>
+				<p>
+                    <sup><a id="r2" href="#r2b">2</a></sup>
+					<i>
+						I am very aware of the phrase "premature optimisation", however, I
+						actively choose to ignore it
+						<a target="_blank" href="https://www.youtube.com/watch?v=y2jH37EObQY&t=2438s">
+                            (linkie)</a>.
+                        (Disregard this statement if you are a potential employer :])
+					</i>
+				</p>
+				<p>
+                    <sup><a id="r3" href="#r3b">3</a></sup>
+					<i>
+                        Refer to <sup><a href="#r2">2</a></sup>.
+					</i>
+				</p>
+				<p>
+                    <sup><a id="r4" href="#r4b">4</a></sup>
+					<i>
+                        Until I manage to acquire access to
+                        <a href="https://youtube.com/playlist?list=PLmV5I2fxaiCKfxMBrNsU1kgKJXD3PkyxO">The Language</a>,
+                        by Jonathan Blow, or at least when it releases :].
+					</i>
+				</p>
+				<p>
+                    <sup><a id="r5" href="#r5b">5</a></sup>
+					<i>If you are an employer, I'd also be happy to discuss over an interview.</i>
+				</p>
+            </section>
+		</main>
+
+		<footer>
+			<div class="navbar">
+				<ul>
+					<li><a href="../index.html">return;</a></li>
+				</ul>
+                <p><i>Last modified: 11 Dec 2025</i></p>
+			</div>
+		</footer>
+	</body>
+</html>
