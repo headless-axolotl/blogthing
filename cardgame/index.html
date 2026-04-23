@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8">
-		<link rel="stylesheet" href="../css/style.css">
-		<title>blogthing: Card Game</title>
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="../css/style.css">
+        <title>blogthing: Card Game</title>
         <script id="MathJax-script" async
             src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js">
-  </script>
-	</head>
+        </script>
+    </head>
 
-	<body>
-		<header>
-			<h1 class="hN"> Card Game Devlog [01] </h1>
+    <body>
+        <header>
+            <h1 class="hN"> Card Game Devlog [01] </h1>
             <hr>
-		</header>
-		<main>
-			<section>
-				<h3>
-					Introduction
-				</h3>
-				<p>
+        </header>
+        <main>
+            <section>
+                <h3>
+                    Introduction
+                </h3>
+                <p>
                     For a while now I have thought about creating a card game. Only recently
                     (recently, as in the past year), however, did I become satisfied with (some of)
                     the solutions I've come up with to the requirements I put on myself. As I have
@@ -27,12 +27,12 @@
                     demo, I decided to write this development blog. Its purpose is to record the
                     evolution of my ideas and to serve as a sign of existence of the work I have put
                     in up until now.
-				</p>
+                </p>
 
-				<h3>
-					About card games
-				</h3>
-				<p>
+                <h3>
+                    About card games
+                </h3>
+                <p>
                     There are different things that may come to mind when one reads the words "card
                     game". One of them would be card games which utilise the classic 52 card deck or
                     a subset of it - games, such as Poker, Belot and others which have existed for
@@ -42,44 +42,44 @@
                     software (probably) would not have taken me this much time. Instead, the card
                     games I am primarily inspired by are Yu&#8209;Gi&#8209;Oh! (YGO), Magic: The
                     Gathering (MTG), Hearthstone, Duel Masters, ...
-				</p>
+                </p>
 
-				<h3>
-					State of the game
-				</h3>
-				<p>
+                <h3>
+                    State of the game
+                </h3>
+                <p>
                     Modelling the state of games like the aforementioned Trading Card Games (TCGs)
                     is not a straightforward task. A few of the challenges I have/had to solve are,
                     but not limited to:
-				</p>
+                </p>
 
-				<ul>
-					<li>
+                <ul>
+                    <li>
                         Not having a concrete ruleset. Since I do not know the rules of the game I
                         am creating yet, I cannot say with certainty that my card entities will have
                         such and such fields which can have such and such values. One can validly
                         argue, however, that I should first have a game idea in mind and then start
                         prototyping and playtesting systems. A counterargument is that this way of
                         storing state information does not help with the next point.
-					</li>
+                    </li>
 
-					<li>
+                    <li>
                         Extensibility. I want to easily add new cards and features potentially
                         without rebuilding the game project. I want others to be able to do the same
                         without having to modify the executable or the base game files. Using a
                         structure with a field for an attack and defence stat is not going to help.
-					</li>
+                    </li>
 
-					<li>
+                    <li>
                         Performance and size efficiency. I want to quickly modify the state and
                         answer queries about it. For example, in a linear or better amount of time
                         one should be able to find all card entities with a given property, all
                         cards whose property <i>has a certain value</i> and the value of any given
                         property a card has. In addition, update operations should also be fast.
-					</li>
-				</ul>
+                    </li>
+                </ul>
 
-				<p>
+                <p>
                     The solution I found for the first two challenges was to store the cards as bags
                     of property-value number pairs. This way I can leave the semantic interpretation
                     of the numbers up to the graphical part of the game which will need to be
@@ -90,9 +90,9 @@
                     reserved for the type of the property. An instance of a number property could be
                     the ATK stat in YGO while the Type of a monster is an enumeration of different
                     symbols (in the mathematical sense) e.g. Dragon, Beast, Plant, etc.
-				</p>
+                </p>
 
-				<p>
+                <p>
                     For a long time I was debating how to approach the third challenge. My initial
                     ideas revolved around bitvectors which could hold whether a card had a given
                     property with additional sparse arrays to hold the value of the property if it
@@ -104,43 +104,44 @@
                     on the battlefield in MTG and a creature in the Library, there are considerably
                     more things that can happen to the creature in play (which would need to be
                     stored somehow), than to the one safely tucked away in the Library.
-				</p>
+                </p>
 
-				<p>
+                <p>
                     Another problem arises when one property can have multiple values at the same
                     time (such as the types of this
-					<a target="_blank" href="https://scryfall.com/card/rna/183/hydroid-krasis">creature</a>).
+                    <a target="_blank"
+                        href="https://scryfall.com/card/rna/183/hydroid-krasis">creature</a>).
                     One approach is to treat the value of the property as a bitvector with flags for
                     each variant of that property. This, however, is not extensible and will become
                     a problem when or if the number of variants the property has, becomes greater
                     than the size of the value integer. The approach I went with is to have the
                     variants of the property to also be ("tag") properties that the card can have.
                     My implementation is heavily inspired by the
-					<a target="_blank" href="https://github.com/SanderMertens/flecs">flecs</a>
+                    <a target="_blank" href="https://github.com/SanderMertens/flecs">flecs</a>
                     project whose creator,
                     <a target="_blank" href="https://ajmmertens.medium.com/">Sander Mertens</a>, has
                     a few blogs on how the Entity Component System (ECS) works and which were a
                     helpful guide when I was writing code.
-				</p>
+                </p>
 
-				<p>
-					Here is "briefly" how the whole thing works.
-				</p>
-				<ul>
-					<li>
+                <p>
+                    Here is "briefly" how the whole thing works.
+                </p>
+                <ul>
+                    <li>
                         Unlike <b>flecs</b>, I do not need to store complex components and in card
                         games things are inherently discrete so the integer pair property-value
                         works well. The collection of structures needed to store the data, perform
                         the queries and update the state I will refer to as the World.
-					</li>
+                    </li>
 
-					<li>
+                    <li>
                         One of the main concepts of this ECS is the Archetype. An Archetype is
                         responsible for storing the values for all cards which have the same
                         properties, by which the Archetype is distinguished. This set of properties
                         is called the Type of the Archetype. For each property the Archetype stores
                         a column with its values for cache related speed reasons.
-					</li>
+                    </li>
 
                     <li>
                         The properties in the Type are sorted. This enables two things. First, we
@@ -163,7 +164,7 @@
                         the underlined range of properties.
                     </li>
 
-					<li>
+                    <li>
                         Adding and removing a property from a card happens by moving the card from
                         one Archetype to another. Finding the new Archetype is done using a graph.
                         The edges in the graph show the relationships between two Archetypes. In the
@@ -175,14 +176,15 @@
                         hole opened up by removing the current one. This is done for each of the
                         columns in the Archetype. The order of the cards in the Archetype does not
                         matter and so we can use this \(O(1)\) operation without worry.
-					</li>
+                    </li>
 
                     <li>
                         To find whether an Archetype contains a property, another structure is
                         maintained - a map with a given property as a key and "inner" maps of
                         Archetypes as a value (for people familiar with templates/generics in some
                         programming languages:
-                        <code class="inline">Map&lt;Property, Map&lt;ArchetypeIdx, int&gt;&gt;</code>).
+                        <code class="inline">Map&lt;Property, Map&lt;ArchetypeIdx,
+                            int&gt;&gt;</code>).
                         The inner map relates an Archetype to the index of the column which
                         corresponds to the property the inner map belongs to. And so, the
                         aforementioned check is performed by testing whether the inner map contains
@@ -200,7 +202,7 @@
                         Archetype stores an array of card indices in the order in which their rows
                         appear in the property-value matrix.
                     </li>
-				</ul>
+                </ul>
 
                 <p>
                     Given this description, I can answer the queries I posed in the third challenge.
@@ -210,16 +212,17 @@
                     the query and <i>n</i> is the number of cards in the World.
                 </p>
 
-				<p>
+                <p>
                     A way that I can improve the current implementation is not to store values for
                     tag properties. For now, I am hesitant to do this rewrite as I might find a use
                     case for storing values in tag properties. In addition, my current
                     implementation does not support creating or deleting cards, however, this would
                     be useful for card effects which create Tokens (for example in
-					<a target="_blank" href="https://yugipedia.com/wiki/Scapegoat">YGO</a>
-					and
-					<a target="_blank" href="https://scryfall.com/card/m13/173/fungal-sprouting">MTG</a>).
-				</p>
+                    <a target="_blank" href="https://yugipedia.com/wiki/Scapegoat">YGO</a>
+                    and
+                    <a target="_blank"
+                        href="https://scryfall.com/card/m13/173/fungal-sprouting">MTG</a>).
+                </p>
 
                 <p>
                     A flaw in this structure is the potential for the number of Archetypes to grow
@@ -262,18 +265,18 @@
                     focused on and have made more significant progress on the following topic.
                 </p>
 
-				<h3>
-					Storing Logic
-				</h3>
-				<p>
+                <h3>
+                    Storing Logic
+                </h3>
+                <p>
                     Another non-trivial task is the encoding of the rules of the game and the
                     effects or abilities of the cards, unless one believes that hard coding
                     everything is a great way to spend their time. One challenging aspect of this
                     task, aside from its inherent difficulty, is being able to pause execution for
                     an agent to pick otions the effects provide. This 
-					<a target="_blank" href="https://youtu.be/s1ZQnS_tOg0">video</a>
+                    <a target="_blank" href="https://youtu.be/s1ZQnS_tOg0">video</a>
                     was one of the main sources of inspiration when I was thinking about a solution.
-				</p>
+                </p>
 
                 <p>
                     The two main ideas I had were using a state machine and creating a simple
@@ -305,7 +308,7 @@
                     I had acquired the knowledge that some programming languages support the idea of
                     coroutines. My encounters with them were in C# with Unity (the
                     <a target="_blank" href="https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/statements/yield">
-                        <code class="inline">yield</code></a>
+                    <code class="inline">yield</code></a>
                     contextual keyword and the <code class="inline">IEnumerator</code> interface)
                     and later in Lua. Coroutines fulfilled the requirement that the textual
                     representation of the logic should be in one place for better understanding. In
@@ -315,13 +318,12 @@
                     use an already existing scripting language. My reasoning was that such a
                     language would have been designed by people with way more experience than me and
                     that I would not be able to do any better. At some point I was experimenting
-                    with integrating Lua and Rust (my current hacking language of
-                    choice<sup><a id="r2b" href="#r2">2</a></sup>). One thing I wanted to be very
-                    careful about was sandboxing the scripting language I used. I did not want my
-                    software to become an example for a vulnerable system (even though it still
-                    might be) and it would be a nice exercise. After a bit of frustration I gave up,
-                    however, at this point in time I had already taught myself about a bit about
-                    creating programming languages by reading the fantastic
+                    with integrating Lua and Rust (my current hacking language of choice). One thing
+                    I wanted to be very careful about was sandboxing the scripting language I used.
+                    I did not want my software to become an example for a vulnerable system (even
+                    though it still might be) and it would be a nice exercise. After a bit of
+                    frustration I gave up, however, at this point in time I had already taught
+                    myself about a bit about creating programming languages by reading the fantastic
                     <a target="_blank" href="https://craftinginterpreters.com/">Crafting Interpreters</a>
                     by Robert Nystrom. That is why I was eager to give creating a simple programming
                     language a try.
@@ -331,7 +333,7 @@
                     And so, here is the current way I am encoding logic and storing data related to
                     it.
                 </p>
-				<ul>
+                <ul>
                     <li>
                         The structure which holds the information for everything from defined
                         symbols (properties), to effects, helper procedures, cards and so on, is
@@ -416,17 +418,17 @@
                         refer to registers, buffers, cards and properties (which could be defined in
                         a dependency of this Pack). A register is a slot for a single number and a
                         buffer is a simple dynamic array. These serve as a shared context between
-                        procedure calls. Apart from the assembly like operations, I have control flow
-                        operations such as an if-else and loop operation, break and continue which
-                        work with labels which in turn can be placed on scopes (which are there only
-                        in syntax) or loops. I have yet to implement the compilation of operations
-                        which call other card game language and native procedures, operations for
-                        manipulating the contents of the buffers (apart from changing the values in
-                        already existing slots) and operations for receiving input from agents
-                        (human players and potentially artificial players). I have a pretty good
-                        idea on how to implement the former two, however, I need more time
-                        thinking about the latter. Receiving input from agents will simply pause the
-                        execution in the VM in a similar way interrupts work in real CPUs.
+                        procedure calls. Apart from the assembly like operations, I have control
+                        flow operations such as an if-else and loop operation, break and continue
+                        which work with labels which in turn can be placed on scopes (which are
+                        there only in syntax) or loops. I have yet to implement the compilation of
+                        operations which call other card game language and native procedures,
+                        operations for manipulating the contents of the buffers (apart from changing
+                        the values in already existing slots) and operations for receiving input
+                        from agents (human players and potentially artificial players). I have a
+                        pretty good idea on how to implement the former two, however, I need more
+                        time thinking about the latter. Receiving input from agents will simply
+                        pause the execution in the VM in a similar way interrupts work in real CPUs.
                     </li>
 
                     <li>
@@ -489,35 +491,28 @@
                     repository. Corrections for typos, grammatical and other mistakes are also
                     welcome.
                 </p>
-			</section>
+            </section>
 
             <section class="footnotes">
                 <hr>
-				<p>
+                <p>
                     <sup><a id="r1" href="#r1b">1</a></sup>
-					<i>
-						If you'd like to try something new check out
-						<a target="_blank" href="https://www.regicidegame.com/">Regicide</a>.
-					</i>
-				</p>
-				<p>
-                    <sup><a id="r2" href="#r2b">2</a></sup>
-					<i>
-                        Until I manage to acquire access to
-                        <a href="https://youtube.com/playlist?list=PLmV5I2fxaiCKfxMBrNsU1kgKJXD3PkyxO">The Language</a>,
-                        by Jonathan Blow, or at least when it releases :].
-					</i>
-				</p>
+                    <i>
+                        If you'd like to try something new check out
+                        <a target="_blank" href="https://www.regicidegame.com/">Regicide</a>.
+                    </i>
+                </p>
             </section>
-		</main>
+        </main>
 
-		<footer>
-			<div class="navbar">
-				<ul>
-					<li><a href="../index.html">return;</a></li>
-				</ul>
-                <p><i>Last modified: 11 Dec 2025</i></p>
-			</div>
-		</footer>
-	</body>
+        <footer>
+            <div class="navbar">
+                <ul>
+                    <li><a href="../index.html">return;</a></li>
+                    <li><a href="./update_01.html">next();</a></li>
+                </ul>
+                <p><i>Last modified: 19 Apr 2026</i></p>
+            </div>
+        </footer>
+    </body>
 </html>

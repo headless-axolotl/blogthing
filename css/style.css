@@ -74,10 +74,11 @@ a:hover {
     padding: 0;
     overflow: hidden;
     background-color: #333333;
+    text-align: center;
 }
 .navbar ul li {
+    display: inline-block;
     margin: 0 auto;
-    float: center;
     max-width: 20em;
 }
 .navbar ul li a {

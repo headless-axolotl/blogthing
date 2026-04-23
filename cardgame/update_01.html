@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="../css/style.css">
+        <title>blogthing: Card Game</title>
+        <!-- <script id="MathJax-script" async -->
+        <!--     src="https://cdn.jsdelivr.net/npm/mathjax@4/tex-mml-chtml.js"> -->
+        <!-- </script> -->
+    </head>
+
+    <body>
+        <header>
+            <h1 class="hN"> Card Game Devlog [02] </h1>
+            <hr>
+        </header>
+        <main>
+            <section>
+                <h3>
+                     Introduction
+                </h3>
+                <p>
+                    This is a small progress report about my work on the card game.
+                </p>
+
+                <h3>
+                    Critique
+                </h3>
+                <p>
+                    Several times in my previous blog post I am refering to efficiency and making
+                    choices based on what I think will be fast. Even though, in theory, this could
+                    be true, in practice I definitely should perform benchmarks in order to see
+                    whether my implementations are indeed fast. As my current focus is on
+                    implementing features and making progress towards something playable I will
+                    probably not do these in the near future.
+                </p>
+
+                <h3>
+                     Changes
+                </h3>
+                <p>
+                    Here is a list of the changes and additions I have made since my last post:
+                </p>
+                <ul>
+                    <li>
+                        The library now does not store separate Pack structures with symbol, card
+                        and procedure definitions. It collects all of these in a corresponding map.
+                        The keys to the map are not FNV hashes of the identifiers of the definition,
+                        but a handle. A handle is comprised of two 32-bit integers - the indices of
+                        the pack identifier and the name of the coresponding definition in the
+                        string interner. Identifiers are now interned library-wide i.e. there isn't
+                        a string interner per pack.
+                    </li>
+
+                    <li>
+                        Constant atoms in the code can now refer to symbols, cards, procedures,
+                        string constants and string literals. A string constant is an identifier
+                        used to refer to a string literal. String literals are interned separately
+                        from identifiers and their handles are 64-bit integers. The 4 most
+                        significant bits of the constant are used to identify whether it is just an
+                        integer or whether there is a packed handle to a symbol, card, etc. into it.
+                        Basically I have written a dynamically typed system with tagged unions for
+                        my language. I am not entirely happy how this turned out, but I am too lazy
+                        to implement a type system and this does the job for now. I also hope that
+                        this is not the last language I try to implement in order to improve in the
+                        future.
+                    </li>
+
+                    <li>
+                        Since now constant atoms can refer to things other than card properties and
+                        numbers I have decided to change the term I use for them. In fact I've been
+                        already refering to them as symbols in the previous paragraph. Cards still
+                        have properties and values which are a pair of integers, however, now the
+                        property can refer to a string, a procedure, etc. This allowed me to reduce
+                        the amount of syntax used for cards since now I can use a key symbol 'name'
+                        or 'description' in order to refer to a string as a value of the property.
+                    </li>
+
+                    <li>
+                        Effects now don't have separate definitions, but are defined as a pair of a
+                        check procedure and action procedure under a section of the card definition.
+                        Briefly, a card definition contains section for properties, a section for
+                        "hooks" and a section for effects. The only section I have not discussed is
+                        the one for hooks so I will elaborate on that. Hooks will be the procedures
+                        which are invoked after an event has happened to set flag for the check
+                        procedures of the effects.
+                    </li>
+
+                    <li>
+                        The group construct is now renamed to set and can contain not only symbols
+                        but references to procedures, cards, etc.
+                    </li>
+
+                    <li>
+                        Up until my previous post everything I've done was on the front-end of the
+                        interpreter/compiler/thing-er i.e. bytecode was only emitted but not
+                        interpreted. Now, every feature I described previously is interpretable.
+                        What I need to write next is more "native" (Rust) procedures which can be
+                        called from the card game programming language. One choice I made to speed
+                        up progress towards something playable was that if I am able to implement
+                        somehting as a native, then I should not make syntax and semantics for it in
+                        the language. This is how I was able to cut the family of instruction which
+                        would manipulate the buffers (dynamic arrays) accessible to the procedures
+                        of the language i.e. appending, clearing and so on.
+                    </li>
+                </ul>
+
+                <p>
+                    Here are low priority features that I have yet to implement:
+                </p>
+
+                <ul>
+                    <li>
+                        Errors shouldn't kill the compilation process. Multiple errors should be
+                        reported up to a given number.
+                    </li>
+                    <li>
+                        Definitions in the same pack should be able to refer to other definitions in
+                        the same pack even if the former is before the latter in the compilation
+                        process. I.e. add a second pass to the compiler.
+                    </li>
+                </ul>
+
+                <p>
+                    And finaly here are the steps I am planning to undertake:
+                </p>
+
+                <ul>
+                    <li>
+                        Define an interface with which the interpreter will send and receive
+                        messages to and from agents (players or bots). My general idea is to send
+                        information about symbols and other references as the corresponding strings
+                        of the handle of the thing. In the language sending messages (and the
+                        related question string) will be done with native procedures. Now that I can
+                        reference strings inside the language this will not be that big of a hassle.
+                    </li>
+                    <li>
+                        Write a test CLI implementation of the interface. For this purposes and for
+                        future debugging purposes I will also write a textual representation of the
+                        Chronicle structure.
+                    </li>
+                    <li>
+                        Think about the basic ruleset of the card game and what the workflow of
+                        adding cards and effects would look like.
+                    </li>
+                    <li>
+                        Write tests for the language. This will probably not happen soon. Shame on
+                        me!
+                    </li>
+                </ul>
+            </section>
+
+            <section>
+                <hr>
+                <p>
+                    Follows some demo code in the card game language. It looks a bit like
+                    punctuation soup, but oh well...
+                </p>
+                <code><pre>
+// Comments look like this.
+
+// Defines the symbols 'lasagna' and 'cat'.
+symbols {
+    lasagna,
+    cat,
+}
+
+// Defines a procedure. It has one parameter 'b'.
+push_some_values : proc[b] {
+    // Native procedures are identified by the '@' symbol before their name.
+    proc @push[.b, -1, 0, 1, 2, 3, 4, 5, lasagna];
+}
+ 
+main : proc[i, b] {
+    // Store the value 1 in the parameter b (identified by the '.' before the
+    // name of the parameter). I.e. use the first buffer to push values.
+    copy 1 .b;
+    // Call a procedure defined in the card game language.
+    proc push_some_values[.b];
+
+    // In this case resets the value of the parameter i to 0.
+    del .i; 
+    loop .i &lt; #len buf:.b {
+        proc @print[buf:.b[.i], **];
+
+        // The operation/block after the '>' symbol is executed after the body
+        // of the loop even. This happens even after continue.
+    } > add 1 .i;
+
+    // The #str directive specifies that the handle afterwards refers to a
+    // string constant and not a symbol. The identifier before the ':' character
+    // specifies the dependency pack where the constant is defined.
+    proc @print[#str core:newline];
+
+    copy 3 .i;
+    copy 1 reg0; copy 1 reg1;
+    // Calculate the 10th Fibonacci value. The registers reg0 and reg1 already
+    // contain the 1st and 2nd number.
+    loop .i &lt;= 10 {
+        // Adds the value of reg0 to reg1, stores the result in reg1 and puts
+        // the previous value of reg1 into reg0.
+        add reg0 reg1 &gt; reg0;
+    } > {
+        // Demonstration that there can be a block after the main body of the
+        // loop.
+        add 1 .i;
+        add 2 reg2;
+    }
+
+    // Strings are surrounded by the '*' symbol.
+    proc @print[*10th Fibonacci number:*, reg1, #str core:newline];
+    proc @print[*reg2:*, reg2, #str core:newline];
+
+    // Labelled scopes. Loops can also be labelled.
+    'label {
+        // Stores the result of reg1 % 2 to reg0;
+        mod 2 reg1 reg0;
+        // A silly if operation to demonstrate the generated bytecode. The body
+        // of the if operation (in this case the break operation) does not need
+        // to be a block. The #sym directive specifies that the handle
+        // afterwards refers to a symbol. This is the default.
+        if ![reg0 == 0 | #sym cat &lt; lasagna] & buf:1[0] != ? break 'label;
+        proc @print[*this should not be in the output*, #str core:newline];
+    }
+}</pre></code>
+
+                <p>
+                    Interpreting the 'main' procedure results in the following output.
+                </p>
+<code><pre>
+-1 0 1 2 3 4 5 #sym test:lasagna 
+10th Fibonacci number: 55 
+reg2: 16 </pre></code>
+
+                <p>
+                    This is a debug output of the bytecode of the procedure 'main'. (At some point I
+                    might add annotations and further explanations.)
+                </p>
+<code><pre>
+test:main[i, b]:
+000016: copy                     1                   .b;
+000017: proc  test:push_some_values[
+000018:  .b];
+000019: del                     .i;
+000020: check                   .i  &lt;       #len buf:.b;
+000021: jump         +5(&gt;&gt; 000026);
+000022: proc  @print[
+000023:  buf:.b[.i], ""];
+000024: add                      1                   .i;
+000025: jump         -5(&gt;&gt; 000020);
+000026: proc  @print[
+000027:  "\n"];
+000028: copy                     3                   .i;
+000029: copy                     1                 reg0;
+000030: copy                     1                 reg1;
+000031: check                   .i &lt;=                10;
+000032: jump         +5(&gt;&gt; 000037);
+000033: add                   reg0                 reg1 &gt;               reg0;
+000034: add                      1                   .i;
+000035: add                      2                 reg2;
+000036: jump         -5(&gt;&gt; 000031);
+000037: proc  @print[
+000038:  "10th Fibonacci number:", reg1, "\n"];
+000039: proc  @print[
+000040:  "reg2:", reg2, "\n"];
+000041: mod                      2                 reg1                 reg0;
+000042: test                   and;
+000043: test                   nor;
+000044: check                 reg0 ==                 0;
+000045: check        #sym test:cat  &lt; #sym test:lasagna;
+000046: nop;
+000047: check             buf:1[0] !=                 ?;
+000048: nop;
+000049: jump         +2(&gt;&gt; 000051);
+000050: jump         +3(&gt;&gt; 000053);
+000051: proc  @print[
+000052:  "this should not be in the output", "\n"];
+000053: ret;</pre></code>
+            </section>
+
+            <section>
+                <hr>
+                <p>
+                    See you in the next one!<br/>- Martin
+                </p>
+
+            </section>
+        </main>
+
+        <footer>
+            <div class="navbar">
+                <ul>
+                    <li><a href="./index.html">back();</a></li>
+                    <li><a href="../index.html">return;</a></li>
+                </ul>
+                <p><i>Last modified: 23 Apr 2026</i></p>
+            </div>
+        </footer>
+    </body>
+</html>
+
