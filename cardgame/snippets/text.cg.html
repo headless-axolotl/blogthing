@@ -1,0 +1,145 @@
+<!doctype HTML>
+<head>
+    <title>text.cg</title>
+    <link rel="stylesheet" href="./snippets_style.css">
+</head>
+
+<body>
+
+<table>
+<tr><td class=line-number>1</td><td class=line>
+</td></tr>
+<tr><td class=line-number>2</td><td class=line><span class='comment'>// Comments look like this.</span>
+</td></tr>
+<tr><td class=line-number>3</td><td class=line>
+</td></tr>
+<tr><td class=line-number>4</td><td class=line><span class='keyword'>symbols</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>5</td><td class=line>    <span class='constant'>lasagna</span><span class='punctuation delimiter'>,</span>
+</td></tr>
+<tr><td class=line-number>6</td><td class=line>    <span class='constant'>cat</span><span class='punctuation delimiter'>,</span>
+</td></tr>
+<tr><td class=line-number>7</td><td class=line><span class='punctuation bracket'>}</span>
+</td></tr>
+<tr><td class=line-number>8</td><td class=line>
+</td></tr>
+<tr><td class=line-number>9</td><td class=line><span class='function'>push_some_values</span> <span class='punctuation delimiter'>:</span> <span class='keyword'>proc</span><span class='punctuation bracket'>[</span><span class='variable parameter'>b</span><span class='punctuation bracket'>]</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>10</td><td class=line>    <span class='comment'>// Native procedures are identified by the &#39;@&#39; symbol before their name.</span>
+</td></tr>
+<tr><td class=line-number>11</td><td class=line>    <span class='keyword'>proc</span> <span class='operator'>@push</span><span class='punctuation bracket'>[</span><span class='variable parameter'>.b</span><span class='punctuation delimiter'>,</span> <span class='number'>-1</span><span class='punctuation delimiter'>,</span> <span class='number'>0</span><span class='punctuation delimiter'>,</span> <span class='number'>1</span><span class='punctuation delimiter'>,</span> <span class='number'>2</span><span class='punctuation delimiter'>,</span> <span class='number'>3</span><span class='punctuation delimiter'>,</span> <span class='number'>4</span><span class='punctuation delimiter'>,</span> <span class='number'>5</span><span class='punctuation delimiter'>,</span> <span class='constant'>lasagna</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>12</td><td class=line><span class='punctuation bracket'>}</span>
+</td></tr>
+<tr><td class=line-number>13</td><td class=line>
+</td></tr>
+<tr><td class=line-number>14</td><td class=line><span class='function'>main</span> <span class='punctuation delimiter'>:</span> <span class='keyword'>proc</span><span class='punctuation bracket'>[</span><span class='variable parameter'>i</span><span class='punctuation delimiter'>,</span> <span class='variable parameter'>b</span><span class='punctuation bracket'>]</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>15</td><td class=line>    <span class='comment'>// Store the value 1 in the parameter b (identified by the &#39;.&#39; before the</span>
+</td></tr>
+<tr><td class=line-number>16</td><td class=line>    <span class='comment'>// name of the parameter). I.e. use the first buffer to push values.</span>
+</td></tr>
+<tr><td class=line-number>17</td><td class=line>    <span class='keyword'>copy</span> <span class='number'>1</span> <span class='variable parameter'>.b</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>18</td><td class=line>    <span class='comment'>// Call a procedure defined in the card game language.</span>
+</td></tr>
+<tr><td class=line-number>19</td><td class=line>    <span class='keyword'>proc</span> <span class='function'>push_some_values</span><span class='punctuation bracket'>[</span><span class='variable parameter'>.b</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>20</td><td class=line>
+</td></tr>
+<tr><td class=line-number>21</td><td class=line>    <span class='comment'>// In this case resets the value of the parameter i to 0.</span>
+</td></tr>
+<tr><td class=line-number>22</td><td class=line>    <span class='keyword'>del</span> <span class='variable parameter'>.i</span><span class='punctuation delimiter'>;</span> 
+</td></tr>
+<tr><td class=line-number>23</td><td class=line>    <span class='keyword'>loop</span> <span class='variable parameter'>.i</span> <span class='operator'>&lt;</span> <span class='operator'>#len</span> <span class='variable'>buf</span><span class='punctuation delimiter'>:</span><span class='variable parameter'>.b</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>24</td><td class=line>        <span class='keyword'>proc</span> <span class='operator'>@print</span><span class='punctuation bracket'>[</span><span class='variable'>buf</span><span class='punctuation delimiter'>:</span><span class='variable parameter'>.b</span><span class='punctuation bracket'>[</span><span class='variable parameter'>.i</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>,</span> <span class='string'>**</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>25</td><td class=line>
+</td></tr>
+<tr><td class=line-number>26</td><td class=line>        <span class='comment'>// The operation/block after the &#39;&gt;&#39; symbol is executed after the body</span>
+</td></tr>
+<tr><td class=line-number>27</td><td class=line>        <span class='comment'>// of the loop even. This happens even after continue.</span>
+</td></tr>
+<tr><td class=line-number>28</td><td class=line>    <span class='punctuation bracket'>}</span> <span class='operator'>&gt;</span> <span class='keyword'>add</span> <span class='number'>1</span> <span class='variable parameter'>.i</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>29</td><td class=line>
+</td></tr>
+<tr><td class=line-number>30</td><td class=line>    <span class='comment'>// The #str directive specifies that the handle afterwards refers to a</span>
+</td></tr>
+<tr><td class=line-number>31</td><td class=line>    <span class='comment'>// string constant and not a symbol. The identifier before the &#39;:&#39; character</span>
+</td></tr>
+<tr><td class=line-number>32</td><td class=line>    <span class='comment'>// specifies the dependency pack where the constant is defined.</span>
+</td></tr>
+<tr><td class=line-number>33</td><td class=line>    <span class='keyword'>proc</span> <span class='operator'>@print</span><span class='punctuation bracket'>[</span><span class='operator'>#str</span> <span class='module'>core</span><span class='punctuation delimiter'>:</span><span class='constant'>newline</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>34</td><td class=line>
+</td></tr>
+<tr><td class=line-number>35</td><td class=line>    <span class='keyword'>copy</span> <span class='number'>3</span> <span class='variable parameter'>.i</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>36</td><td class=line>    <span class='keyword'>copy</span> <span class='number'>1</span> <span class='variable'>reg0</span><span class='punctuation delimiter'>;</span> <span class='keyword'>copy</span> <span class='number'>1</span> <span class='variable'>reg1</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>37</td><td class=line>    <span class='comment'>// Calculate the 10th Fibonacci value. The registers reg0 and reg1 already</span>
+</td></tr>
+<tr><td class=line-number>38</td><td class=line>    <span class='comment'>// contain the 1st and 2nd number.</span>
+</td></tr>
+<tr><td class=line-number>39</td><td class=line>    <span class='keyword'>loop</span> <span class='variable parameter'>.i</span> <span class='operator'>&lt;=</span> <span class='number'>10</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>40</td><td class=line>        <span class='comment'>// Adds the value of reg0 to reg1, stores the result in reg1 and puts</span>
+</td></tr>
+<tr><td class=line-number>41</td><td class=line>        <span class='comment'>// the previous value of reg1 into reg0.</span>
+</td></tr>
+<tr><td class=line-number>42</td><td class=line>        <span class='keyword'>add</span> <span class='variable'>reg0</span> <span class='variable'>reg1</span> <span class='operator'>&gt;</span> <span class='variable'>reg0</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>43</td><td class=line>    <span class='punctuation bracket'>}</span> <span class='operator'>&gt;</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>44</td><td class=line>        <span class='comment'>// Demonstration that there can be a block after the main body of the</span>
+</td></tr>
+<tr><td class=line-number>45</td><td class=line>        <span class='comment'>// loop.</span>
+</td></tr>
+<tr><td class=line-number>46</td><td class=line>        <span class='keyword'>add</span> <span class='number'>1</span> <span class='variable parameter'>.i</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>47</td><td class=line>        <span class='keyword'>add</span> <span class='number'>2</span> <span class='variable'>reg2</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>48</td><td class=line>    <span class='punctuation bracket'>}</span>
+</td></tr>
+<tr><td class=line-number>49</td><td class=line>
+</td></tr>
+<tr><td class=line-number>50</td><td class=line>    <span class='comment'>// Strings are surrounded by the &#39;*&#39; symbol.</span>
+</td></tr>
+<tr><td class=line-number>51</td><td class=line>    <span class='keyword'>proc</span> <span class='operator'>@print</span><span class='punctuation bracket'>[</span><span class='string'>*10th Fibonacci number:*</span><span class='punctuation delimiter'>,</span> <span class='variable'>reg1</span><span class='punctuation delimiter'>,</span> <span class='operator'>#str</span> <span class='module'>core</span><span class='punctuation delimiter'>:</span><span class='constant'>newline</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>52</td><td class=line>    <span class='keyword'>proc</span> <span class='operator'>@print</span><span class='punctuation bracket'>[</span><span class='string'>*reg2:*</span><span class='punctuation delimiter'>,</span> <span class='variable'>reg2</span><span class='punctuation delimiter'>,</span> <span class='operator'>#str</span> <span class='module'>core</span><span class='punctuation delimiter'>:</span><span class='constant'>newline</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>53</td><td class=line>
+</td></tr>
+<tr><td class=line-number>54</td><td class=line>    <span class='comment'>// Labelled scopes. Loops can also be labelled.</span>
+</td></tr>
+<tr><td class=line-number>55</td><td class=line>    <span class='label'>&#39;label</span> <span class='punctuation bracket'>{</span>
+</td></tr>
+<tr><td class=line-number>56</td><td class=line>        <span class='comment'>// Stores the result of reg1 % 2 to reg0;</span>
+</td></tr>
+<tr><td class=line-number>57</td><td class=line>        <span class='keyword'>mod</span> <span class='number'>2</span> <span class='variable'>reg1</span> <span class='variable'>reg0</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>58</td><td class=line>        <span class='comment'>// A silly if operation to demonstrate the generated bytecode. The body</span>
+</td></tr>
+<tr><td class=line-number>59</td><td class=line>        <span class='comment'>// of the if operation (in this case the break operation) does not need</span>
+</td></tr>
+<tr><td class=line-number>60</td><td class=line>        <span class='comment'>// to be a block. The #sym directive specifies that the handle</span>
+</td></tr>
+<tr><td class=line-number>61</td><td class=line>        <span class='comment'>// afterwards refers to a symbol. This is the default.</span>
+</td></tr>
+<tr><td class=line-number>62</td><td class=line>        <span class='keyword'>if</span> <span class='operator'>!</span><span class='punctuation bracket'>[</span><span class='variable'>reg0</span> <span class='operator'>==</span> <span class='number'>0</span> <span class='operator'>|</span> <span class='operator'>#sym</span> <span class='constant'>cat</span> <span class='operator'>&lt;</span> <span class='constant'>lasagna</span><span class='punctuation bracket'>]</span> <span class='operator'>&amp;</span> <span class='variable'>buf</span><span class='punctuation delimiter'>:</span><span class='number'>1</span><span class='punctuation bracket'>[</span><span class='number'>0</span><span class='punctuation bracket'>]</span> <span class='operator'>!=</span> <span class='constant builtin'>?</span> <span class='keyword'>break</span> <span class='label'>&#39;label</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>63</td><td class=line>        <span class='keyword'>proc</span> <span class='operator'>@print</span><span class='punctuation bracket'>[</span><span class='string'>*this should not be in the output*</span><span class='punctuation delimiter'>,</span> <span class='operator'>#str</span> <span class='module'>core</span><span class='punctuation delimiter'>:</span><span class='constant'>newline</span><span class='punctuation bracket'>]</span><span class='punctuation delimiter'>;</span>
+</td></tr>
+<tr><td class=line-number>64</td><td class=line>    <span class='punctuation bracket'>}</span>
+</td></tr>
+<tr><td class=line-number>65</td><td class=line><span class='punctuation bracket'>}</span>
+</td></tr>
+<tr><td class=line-number>66</td><td class=line>
+</td></tr>
+</table>
+
+</body>
+

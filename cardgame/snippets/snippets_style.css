@@ -1,0 +1,46 @@
+
+body {
+    font-family: "Consolas", monospace;
+    font-weight: 500;
+    font-size: .9em;
+    background-color: #f8f8f8;
+}
+
+.line-number {
+    user-select: none;
+    text-align: right;
+    /* color: rgba(27,31,35,.3); */
+    color: rgba(0,0,0,.3);
+    padding: 0 10px;
+}
+
+.line {
+    white-space: pre;
+}
+
+/* .attribute { font-style: italic;color: #af0000; } */
+.comment { color: #75a590; }
+.constant { color: #b67b38; }
+.constant.builtin { font-weight: bold;color: #d73148; }
+.function { color: #2cabe5; }
+.function.builtin { font-weight: bold;color: #d73148; }
+.keyword { color: #286ddb; }
+.label { font-weight: bold; color: #2cabe5; }
+.module { color: #158589; } /* #8ea4a2 */
+.number { color: #ba59c1; }
+.operator { font-weight: bold; color: #d73148; }
+/* .property { color: #af0000; } */
+/* .property.builtin { font-weight: bold;color: #af0000; } */
+.punctuation           { color: #2e2b23; }
+.punctuation.bracket   { color: #2e2b23; }
+.punctuation.delimiter { color: #2e2b23; }
+.punctuation.special   { color: #2e2b23; }
+.string { color: #8a9a7b; }
+.string.special { color: #8a9a7b; }
+/* .tag { color: #000087; } */
+.type { color: #158589; }
+/* .type.builtin { font-weight: bold;color: #005f5f; } */
+.variable { color: #21293d; }
+/* .variable.builtin { font-weight: bold;color: #d0d0d0; } */
+.variable.parameter { color: #a78868; }
+
